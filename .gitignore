@@ -1,0 +1,52 @@
+# Dependencies and generated builds (all packages)
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+.vite/
+
+# Private environment files; commit only sanitized examples
+.env
+.env.*
+!.env.example
+*.local
+
+# Private keys, credentials, and local secrets
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+id_rsa*
+id_ed25519*
+credentials.json
+service-account*.json
+serviceAccount*.json
+secrets/
+.aws/
+
+# Local databases, backups, and database dumps
+*.dump
+*.backup
+*.sql.gz
+*.sqlite
+*.sqlite3
+pgdata/
+# Keep SQL schema and migrations under server/src/database tracked.
+
+# Logs, coverage, and browser artifacts
+*.log
+coverage/
+test-results/
+playwright-report/
+blob-report/
+
+# Editor, OS, and local agent settings
+.idea/
+.vscode/
+.codex/
+.agents/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
