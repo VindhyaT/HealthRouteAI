@@ -5,12 +5,13 @@ import { demoAppointmentGuidance } from '../models/appointmentGuidance';
 import { departments, locations, faqs } from './demoData';
 
 async function seed() {
+  if (process.env.NODE_ENV === 'production') throw new Error('Demo seeding is disabled in production.');
   if (!pool) throw new Error('DATABASE_URL is required to seed PostgreSQL. Run docker compose up -d postgres first.');
   const client = await pool.connect();
   try {
   await client.query('BEGIN');
   const password = await bcrypt.hash('DemoPass123!', 12);
-  await client.query('INSERT INTO users(name,email,password_hash,role) VALUES($1,$2,$3,$4) ON CONFLICT(email) DO UPDATE SET name=EXCLUDED.name, role=EXCLUDED.role', ['Admin User', 'admin@healthroute.local', password, 'admin']);
+  await client.query('INSERT INTO users(name,email,password_hash,role) VALUES($1,$2,$3,$4) ON CONFLICT(email) DO NOTHING', ['Admin User', 'admin@healthroute.local', password, 'admin']);
 
   await client.query('INSERT INTO users(name,email,password_hash,role) VALUES($1,$2,$3,$4) ON CONFLICT(email) DO NOTHING', ['Demo Patient', 'patient@healthroute.local', password, 'patient']);
 
@@ -54,8 +55,7 @@ async function seed() {
     client.release();
   }
   console.log(`Database seeded: ${departments.length} departments, ${departments.flatMap(department => department.services).length} services, ${locations.length} locations.`);
-  console.log('Patient login: patient@healthroute.local / DemoPass123!');
-  console.log('Admin login: admin@healthroute.local / DemoPass123!');
+  console.log('Demo accounts are documented in README.md. Existing accounts are unchanged.');
 }
 
-seed().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => pool?.end());
+seed().catch(() => { console.error('Database seeding failed. Check configuration and database availability.'); process.exitCode = 1; }).finally(() => pool?.end());

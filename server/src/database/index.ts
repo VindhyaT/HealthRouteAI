@@ -3,7 +3,9 @@ import { Pool } from 'pg';
 import { departments, Service, Department } from './demoData';
 import { rankServices, relevance, serviceRelevance } from '../services/directorySearch';
 
-export const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
+export const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 5000, statement_timeout: 10000 }) : null;
+// Idle connections can fail outside a request; handle the event without leaking connection details.
+pool?.on('error', () => console.error('An idle database connection failed. New requests will reconnect.'));
 export const usingDemoData = !pool;
 export async function initializeDatabase() { if (pool) await (await import('./migrate.js')).migrate(); }
 export async function searchServices(query = ''): Promise<Service[]> {

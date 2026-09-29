@@ -43,6 +43,7 @@ test('JWT authentication, authorization, and directory CRUD', async t => {
       const row = (await pool.query('SELECT password_hash FROM users WHERE id=$1', [patientId])).rows[0];
       assert.notEqual(row.password_hash, password);
       assert(await bcrypt.compare(password, row.password_hash));
+      assert.equal(bcrypt.getRounds(row.password_hash), 12);
       assert.equal((await request('/auth/register', 'POST', { name: 'Duplicate', email: email.toUpperCase(), password })).status, 409);
     });
     await t.test('login verifies passwords and returns safe user data', async () => {
@@ -57,6 +58,15 @@ test('JWT authentication, authorization, and directory CRUD', async t => {
       const login = await request('/auth/login', 'POST', { email: `staff-${suffix}@example.test`, password });
       assert.equal(login.status, 200); adminToken = login.data.token;
     });
+    await t.test('login rejects bcrypt-truncated passwords beyond 72 bytes', async () => {
+      const boundaryEmail = `boundary-${suffix}@example.test`;
+      const boundaryPassword = 'a'.repeat(72);
+      const registered = await request('/auth/register', 'POST', { name: 'Boundary User', email: boundaryEmail, password: boundaryPassword });
+      assert.equal(registered.status, 201);
+      userIds.push(registered.data.user.id);
+      assert.equal((await request('/auth/login', 'POST', { email: boundaryEmail, password: boundaryPassword })).status, 200);
+      assert.equal((await request('/auth/login', 'POST', { email: boundaryEmail, password: boundaryPassword + 'different' })).status, 400);
+    });
     await t.test('missing, forged, expired, and wrong-audience tokens rejected', async () => {
       assert.equal((await request('/auth/me')).status, 401);
       assert.equal((await request('/assistant', 'POST', { question: 'Find primary care' })).status, 401);
@@ -66,6 +76,20 @@ test('JWT authentication, authorization, and directory CRUD', async t => {
         const token = jwt.sign({}, process.env.JWT_SECRET, { subject: patientId, jwtid: payload.jti, issuer: 'healthroute-api', ...options });
         assert.equal((await request('/auth/me', 'GET', undefined, token)).status, 401);
       }
+      const base = { sub: patientId, jti: payload.jti, iss: 'healthroute-api', aud: 'healthroute-web', exp: Math.floor(Date.now() / 1000) + 60 };
+      const malformed = [
+        { ...base, jti: '-'.repeat(36) }, { ...base, sub: { unexpected: true } },
+        { ...base, jti: ['not-a-session'] }, { ...base, exp: undefined },
+        { ...base, iss: 'another-issuer' }, { ...base, nbf: Math.floor(Date.now() / 1000) + 3600 },
+        { ...base, jti: randomUUID() }
+      ];
+      for (const claims of malformed) {
+        if (claims.exp === undefined) delete claims.exp;
+        const token = jwt.sign(claims, process.env.JWT_SECRET);
+        assert.equal((await request('/auth/me', 'GET', undefined, token)).status, 401);
+      }
+      const wrongAlgorithm = jwt.sign(base, process.env.JWT_SECRET, { algorithm: 'HS384' });
+      assert.equal((await request('/auth/me', 'GET', undefined, wrongAlgorithm)).status, 401);
       assert.equal((await request('/auth/me', 'GET', undefined, patientToken)).status, 200);
       assert.equal((await request('/admin/summary', 'GET', undefined, patientToken)).status, 403);
     });
@@ -160,6 +184,37 @@ test('JWT authentication, authorization, and directory CRUD', async t => {
       for (const [table, id] of [...records].reverse()) assert.equal((await request(`/admin/${table}/${id}`, 'DELETE', undefined, adminToken)).status, 200);
       assert(!(await request(`/services?q=${suffix}`)).data.services.some(s => s.id === serviceId));
     });
+    await t.test('SQL-like input remains data; identifiers and filter injection are rejected', async () => {
+      const payload = "O'Reilly; SELECT pg_sleep(2); -- /* SQL-like text */";
+      const question = `Injection regression ${suffix}: ${payload}`;
+      const created = await request('/admin/faqs', 'POST', { question, answer: payload }, adminToken);
+      assert.equal(created.status, 201);
+      const id = created.data.item.id;
+      records.push(['faqs', id]);
+      const stored = (await pool.query('SELECT question,answer FROM faqs WHERE id=$1', [id])).rows[0];
+      assert.equal(stored.question, question);
+      assert.equal(stored.answer, payload);
+      const updated = await request(`/admin/faqs/${id}`, 'PATCH', { answer: "' OR '1'='1 --" }, adminToken);
+      assert.equal(updated.status, 200);
+      assert.equal(updated.data.item.answer, "' OR '1'='1 --");
+      const maliciousKey = { ["answer = 'changed' WHERE true --"]: 'value' };
+      assert.equal((await request(`/admin/faqs/${id}`, 'PATCH', maliciousKey, adminToken)).status, 400);
+      assert.equal((await request('/admin/faqs/' + encodeURIComponent("' OR 1=1 --"), 'DELETE', undefined, adminToken)).status, 400);
+      assert.equal((await request('/admin/' + encodeURIComponent('faqs; SELECT 1'), 'GET', undefined, adminToken)).status, 404);
+      for (const route of ['/departments', '/services']) {
+        const result = await request(`${route}?q=${encodeURIComponent("' OR 1=1; --")}`);
+        assert.equal(result.status, 200);
+        assert.equal(result.data[route.slice(1)].length, 0);
+      }
+      const assistant = await request('/assistant', 'POST', { question: "clinic '); SELECT 1; --" }, patientToken);
+      assert.equal(assistant.status, 200);
+      assert.equal(typeof assistant.data.answer, 'string');
+      assert.equal((await request('/auth/login', 'POST', { email, password: "' OR 1=1 --" })).status, 401);
+      const after = (await pool.query('SELECT answer FROM faqs WHERE id=$1', [id])).rows[0];
+      assert.equal(after.answer, "' OR '1'='1 --");
+      assert.equal((await request(`/admin/faqs/${id}`, 'DELETE', undefined, adminToken)).status, 200);
+    });
+
     await t.test('logout revokes the actual JWT session', async () => {
       assert.equal((await request('/auth/logout', 'POST', undefined, patientToken)).status, 200);
       assert.equal((await request('/auth/me', 'GET', undefined, patientToken)).status, 401);

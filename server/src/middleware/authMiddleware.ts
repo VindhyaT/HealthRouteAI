@@ -7,6 +7,7 @@ import { User } from '../models/user';
 
 const issuer = 'healthroute-api';
 const audience = 'healthroute-web';
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function validateAuthConfig() {
   if (!process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' && process.env.JWT_SECRET.length < 32)) {
     throw new Error('Set JWT_SECRET in .env (at least 32 characters in production).');
@@ -20,7 +21,7 @@ export async function auth(req: AuthRequest, res: Response, next: NextFunction) 
   let payload: jwt.JwtPayload;
   try {
     const decoded = jwt.verify(match[1], process.env.JWT_SECRET!, { algorithms: ['HS256'], issuer, audience });
-    if (typeof decoded === 'string' || !decoded.sub || !decoded.jti || !decoded.exp || !/^[0-9a-f-]{36}$/i.test(decoded.jti)) throw new Error('Invalid token');
+    if (typeof decoded === 'string' || typeof decoded.sub !== 'string' || !uuid.test(decoded.sub) || typeof decoded.jti !== 'string' || !uuid.test(decoded.jti) || typeof decoded.exp !== 'number' || !Number.isFinite(decoded.exp)) throw new Error('Invalid token');
     payload = decoded;
   } catch {
     return res.status(401).json({ error: 'Your session has expired or is invalid. Please sign in again.' });

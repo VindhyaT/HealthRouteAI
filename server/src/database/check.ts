@@ -61,4 +61,4 @@ async function check() {
     client.release();
   }
 }
-check().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => pool?.end());
+check().catch(() => { console.error('Database verification failed. Check configuration and seeded data.'); process.exitCode = 1; }).finally(() => pool?.end());

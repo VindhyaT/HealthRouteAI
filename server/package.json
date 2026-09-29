@@ -9,7 +9,8 @@
     "db:seed": "tsx src/database/seed.ts",
     "seed": "npm run db:migrate && npm run db:seed",
     "db:check": "tsx src/database/check.ts",
-    "test": "npm run build && node --test tests/*.test.cjs tests/*.integration.cjs"
+    "test": "npm run build && node --test tests/*.test.cjs tests/*.integration.cjs",
+    "db:migrate:prod": "node dist/database/migrate.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -220,7 +220,7 @@ npm run seed
 
 A fresh seed includes 9 departments, 11 services, 3 locations, 11 department/location links, 3 FAQs, and 11 appointment guidance records. Departments include Primary Care, Cardiology, Orthopedics, Radiology, Dermatology, Laboratory Services, Physical Therapy, Urgent Care, and Women's Health.
 
-All clinic and administrative details are fictional. Seeding is transactional and repeatable: it updates recognized demo content while preserving unrelated records and existing users' passwords. Existing databases may therefore contain more records than a fresh seed.
+All clinic and administrative details are fictional. Seeding is transactional and repeatable: it updates recognized demo content while preserving unrelated records and existing users' passwords and roles. Existing databases may therefore contain more records than a fresh seed.
 
 | Role | Email | Password |
 | --- | --- | --- |
@@ -341,7 +341,7 @@ See [the end-to-end verification report](docs/end-to-end-verification.md) for re
 
 ## Future AWS EC2 deployment plan
 
-The following is a proposed deployment plan, **not an implemented or verified deployment**. Confirm infrastructure choices and costs before provisioning.
+Production Docker configuration is now available and verified locally. Follow [the EC2 deployment guide](docs/ec2-deployment.md) for HTTPS certificates, private PostgreSQL, environment variables, startup commands and verification results. AWS infrastructure and live Gemini access have not been verified. The following infrastructure plan still requires deployment-specific setup.
 
 1. **Prepare the environment:** create a dedicated EC2 instance, use an appropriate instance role, and manage access with restricted administrative permissions. Keep production configuration separate from local demo settings.
 2. **Provision PostgreSQL:** use a private managed PostgreSQL database, such as Amazon RDS, rather than the local Compose database. Restrict database access to the application, enable encrypted connections, and configure backups.
@@ -369,3 +369,7 @@ The following is a proposed deployment plan, **not an implemented or verified de
 ## Project scope
 
 HealthRoute AI is a university full-stack demonstration, not a clinical system. It provides service navigation and appointment instructions, but does not book appointments, manage patient medical records, send verification emails, or implement password reset. These are potential future extensions, alongside the deployment work described above.
+
+Demo seeding is blocked when `NODE_ENV=production`. Existing accounts, including an account using the demo admin email, are never promoted by reseeding. The local Docker PostgreSQL port is bound to loopback only. Database command failures omit raw database error details from logs.
+
+Authentication audit: login also rejects passwords exceeding bcrypt’s 72-byte limit; JWT subject/session identifiers must be canonical UUID strings before any database lookup.

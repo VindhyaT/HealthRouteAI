@@ -30,6 +30,6 @@ export async function migrate() {
 
 if (require.main === module) {
   migrate().then(() => console.log('Migrations complete.'))
-    .catch(error => { console.error(error); process.exitCode = 1; })
+    .catch(() => { console.error('Database migration failed. Check configuration and migration files.'); process.exitCode = 1; })
     .finally(() => pool?.end());
 }

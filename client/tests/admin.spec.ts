@@ -58,7 +58,7 @@ test('admin dashboard CRUD, validation, confirmation, error recovery, and mobile
           else await route.fallback();
         });
         await form.getByRole('button', { name: 'Save changes' }).click();
-        await expect(page.getByRole('alert')).toContainText('Temporary save failure');
+        await expect(page.getByRole('alert')).toContainText('The service is temporarily unavailable');
         await expect(form.getByLabel('Question', { exact: true })).toHaveValue(title);
         await page.unroute('**/api/admin/faqs');
       }
@@ -70,18 +70,18 @@ test('admin dashboard CRUD, validation, confirmation, error recovery, and mobile
       await page.getByLabel('Search admin records').fill(title);
       const record = page.locator('.admin-record').filter({ hasText: title });
       await expect(record).toHaveCount(1);
-      await record.getByRole('button', { name: 'Edit', exact: true }).click();
+      await record.getByRole('button', { name: /^Edit / }).click();
       const firstField = Object.keys(resource.fields)[0];
       await form.getByLabel(firstField, { exact: true }).fill('Updated administrative content');
       await form.getByRole('button', { name: 'Save changes' }).click();
       await expect(page.locator('.success-message')).toContainText('Changes saved.');
       await expect(record).toContainText('Updated administrative content');
-      await record.getByRole('button', { name: 'Delete', exact: true }).click();
+      await record.getByRole('button', { name: /^Delete / }).click();
       const dialog = page.getByRole('dialog', { name: 'Delete this record?' });
       await expect(dialog).toContainText(title);
       await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       await expect(record).toHaveCount(1);
-      await record.getByRole('button', { name: 'Delete', exact: true }).click();
+      await record.getByRole('button', { name: /^Delete / }).click();
       if (resource.key === 'departments') await expect(dialog).toContainText('Its services, appointment guidance');
       await dialog.getByRole('button', { name: 'Delete record', exact: true }).click();
       await expect(dialog).toBeHidden();

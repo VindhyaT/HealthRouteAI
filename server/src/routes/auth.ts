@@ -9,7 +9,7 @@ export const authRouter = Router();
 const email = z.string().trim().email('Enter a valid email address.').max(254).transform(value => value.toLowerCase());
 const password = z.string().refine(value => !!value.trim(), 'Enter your password.').pipe(z.string().min(8, 'Use at least 8 characters for your password.').refine(value => Buffer.byteLength(value, 'utf8') <= 72, 'Password must be at most 72 UTF-8 bytes.'));
 const registration = z.object({ name: z.string().trim().min(2, 'Enter your full name (at least 2 characters).').max(100), email, password }).strict();
-const login = z.object({ email, password: z.string().min(1, 'Enter your password.').max(1024).refine(value => !!value.trim(), 'Enter your password.') }).strict();
+const login = z.object({ email, password: z.string().min(1, 'Enter your password.').max(1024).refine(value => !!value.trim(), 'Enter your password.').refine(value => Buffer.byteLength(value, 'utf8') <= 72, 'Password must be at most 72 UTF-8 bytes.') }).strict();
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many sign-in attempts. Please try again in 15 minutes.' } });
 // Equal-cost password check when an email does not exist.
 const dummyHash = bcrypt.hashSync('not-a-real-account-password', 12);
