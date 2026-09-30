@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, HeartPulse, LoaderCircle, X } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, HeartPulse, LoaderCircle, X } from 'lucide-react';
 import { api, ApiError } from '../services/api';
 import { User } from '../types';
 
@@ -8,6 +8,7 @@ export default function AuthModal({ onAuth, onClose }: { onAuth: (user: User, to
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [fields, setFields] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
@@ -53,12 +54,12 @@ export default function AuthModal({ onAuth, onClose }: { onAuth: (user: User, to
     <form noValidate aria-label={mode === 'login' ? 'Sign in' : 'Create account'} onSubmit={submit}><fieldset disabled={loading}>
       {mode === 'register' && <label>Full name<input name="name" aria-label="Full name" aria-invalid={!!fields.name} aria-describedby={fields.name ? 'auth-name-error' : undefined} required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={e => { setName(e.target.value); setFields(current => { const next = { ...current }; delete next.name; return next; }); }} placeholder="Alex Morgan" />{fields.name && <span className="field-error" id="auth-name-error" role="alert">{fields.name.join(" ")}</span>}</label>}
       <label>Email address<input name="email" aria-label="Email address" aria-invalid={!!fields.email} aria-describedby={fields.email ? 'auth-email-error' : undefined} required maxLength={254} autoComplete="email" type="email" value={email} onChange={e => { setEmail(e.target.value); setFields(current => { const next = { ...current }; delete next.email; return next; }); }} placeholder="you@example.com" />{fields.email && <span className="field-error" id="auth-email-error" role="alert">{fields.email.join(" ")}</span>}</label>
-      <label>Password<input name="password" aria-label="Password" aria-invalid={!!fields.password} aria-describedby={[fields.password ? 'auth-password-error' : '', mode === 'register' ? 'password-hint' : ''].filter(Boolean).join(' ') || undefined} required minLength={mode === 'register' ? 8 : 1} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} type="password" value={password} onChange={e => { setPassword(e.target.value); setFields(current => { const next = { ...current }; delete next.password; return next; }); }}/>{fields.password && <span className="field-error" id="auth-password-error" role="alert">{fields.password.join(" ")}</span>}</label>
+      <div className="auth-password-field"><label htmlFor="auth-password">Password</label><div className="auth-password-control"><input id="auth-password" name="password" aria-label="Password" aria-invalid={!!fields.password} aria-describedby={[fields.password ? 'auth-password-error' : '', mode === 'register' ? 'password-hint' : ''].filter(Boolean).join(' ') || undefined} required minLength={mode === 'register' ? 8 : 1} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} type={showPassword ? 'text' : 'password'} value={password} onChange={e => { setPassword(e.target.value); setFields(current => { const next = { ...current }; delete next.password; return next; }); }}/><button type="button" className="auth-password-toggle" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-controls="auth-password" onClick={() => setShowPassword(visible => !visible)}>{showPassword ? <EyeOff aria-hidden="true" size={20}/> : <Eye aria-hidden="true" size={20}/>}</button></div>{fields.password && <span className="field-error" id="auth-password-error" role="alert">{fields.password.join(" ")}</span>}</div>
       {mode === 'register' && <p className="field-hint" id="password-hint">Use at least 8 characters.</p>}
       {loading && <p role="status">Connecting to your account…</p>}
       {error && <div className="form-error" role="alert">{error}</div>}
       <button className="primary-button full" disabled={loading}>{loading ? <><LoaderCircle aria-hidden="true" size={16} className="loading-spinner"/>Connecting...</> : <>{mode === 'login' ? 'Sign in' : 'Create account'}<ArrowRight aria-hidden="true" size={16}/></>}</button>
     </fieldset></form>
-    <button className="text-button" disabled={loading} onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setFields({}); }}>{mode === 'login' ? 'New to HealthRoute? Create an account' : 'Already have an account? Sign in'}</button><p className="demo-hint">New accounts have patient access. Staff access is managed by your administrator.</p>
+    <button className="text-button" disabled={loading} onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setShowPassword(false); setError(''); setFields({}); }}>{mode === 'login' ? 'New to HealthRoute? Create an account' : 'Already have an account? Sign in'}</button><p className="demo-hint">New accounts have patient access. Staff access is managed by your administrator.</p>
   </dialog>;
 }

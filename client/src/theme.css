@@ -246,3 +246,13 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
 @media(max-width:380px) {
   .topbar .admin-link { max-width:76px; white-space:normal; line-height:1.3; }
 }
+
+/* Shared login/registration password visibility control. */
+.auth-password-field { margin:14px 0; }
+.auth-password-field > label { margin:0 0 7px; }
+.auth-password-control { position:relative; }
+.auth-password-control input { padding-right:52px; margin-top:0; }
+.auth-password-toggle { position:absolute; right:2px; top:50%; transform:translateY(-50%); width:44px; height:44px; display:flex; align-items:center; justify-content:center; border:0; border-radius:8px; background:transparent; color:var(--muted); cursor:pointer; }
+.auth-password-toggle:hover { color:var(--ink); background:#eef6f5; }
+.auth-password-toggle:focus-visible { outline:2px solid #087f73; outline-offset:2px; }
+.auth-password-toggle:disabled { cursor:wait; opacity:.6; }
