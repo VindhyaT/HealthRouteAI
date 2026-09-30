@@ -1,9 +1,25 @@
 # Standalone production stack; do not merge with the development compose file.
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: healthroute
+      POSTGRES_PASSWORD: healthroute
+      POSTGRES_DB: healthroute
+    volumes:
+      - healthroute_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthroute -d healthroute"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
   server:
     build:
       context: ./server
       target: production
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -52,3 +68,5 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+volumes:
+  healthroute_pgdata:

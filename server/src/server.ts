@@ -22,7 +22,7 @@ async function start() {
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 }
-start().catch(() => {
-  console.error('API startup failed. Check environment configuration, PostgreSQL connectivity, and migrations.');
+start().catch((error) => {
+  console.error('API startup failed:', error);
   process.exit(1);
 });
